@@ -10,10 +10,16 @@ Rails.application.routes.draw do
       # Health check
       get  'health', to: proc { [200, {}, [{ status: 'ok' }.to_json]] }
 
-      # Upload speed test — accepts any payload, discards it, returns bytes received
+      # Upload speed test — capped at 2MB ceiling to protect server resources
       post 'speed_test', to: proc { |env|
-        bytes = env['CONTENT_LENGTH'].to_i
-        [200, { 'Content-Type' => 'application/json' }, [{ received_bytes: bytes }.to_json]]
+        req = Rack::Request.new(env)
+        bytes = req.content_length.to_i
+
+        if bytes > 2.megabytes
+          [413, { 'Content-Type' => 'application/json' }, [{ error: 'Payload Too Large. Maximum size is 2MB.' }.to_json]]
+        else
+          [200, { 'Content-Type' => 'application/json' }, [{ received_bytes: bytes }.to_json]]
+        end
       }
 
       # Assessments
