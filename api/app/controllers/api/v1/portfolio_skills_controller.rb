@@ -42,7 +42,6 @@ module Api
         portfolio = @portfolio_skill.portfolio
         FitGapReport.where(portfolio_id: portfolio.id).each do |report|
           vacancy_id = report.vacancy_id
-          report.destroy
           FitGapGeneratorWorker.perform_async(portfolio.id, vacancy_id)
         end
       end
