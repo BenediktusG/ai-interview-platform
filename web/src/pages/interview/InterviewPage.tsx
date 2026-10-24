@@ -38,6 +38,7 @@ export default function InterviewPage() {
   const connectionLostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [micMuted, setMicMuted] = useState(false);
   const micMutedRef = useRef(false);
+  const [currentRemainingSeconds, setCurrentRemainingSeconds] = useState<number | undefined>(undefined);
 
   // Fetch candidate info
   useEffect(() => {
@@ -46,6 +47,9 @@ export default function InterviewPage() {
       .then((res) => {
         setCandidateInfo(res.data);
         setSessionId(res.data.session_id);
+        if (typeof res.data.remaining_seconds === "number") {
+          setCurrentRemainingSeconds(res.data.remaining_seconds);
+        }
         if (res.data.session_status === "ended") setInterviewState("complete");
       })
       .catch(() => setInterviewState("complete"));
@@ -130,6 +134,10 @@ export default function InterviewPage() {
     }
   }, [scheduleAfterPlayback]);
 
+  const handleTimeSync = useCallback((remainingSec: number) => {
+    setCurrentRemainingSeconds(remainingSec);
+  }, []);
+
   const { connect, send, sendJson, disconnect, connectionState } = useAudioWebSocket({
     sessionId: sessionId ?? 0,
     token,
@@ -138,6 +146,7 @@ export default function InterviewPage() {
     onStateChange: handleStateChange,
     onSpeakerChange: handleSpeakerChange,
     onReconnected: handleReconnected,
+    onTimeSync: handleTimeSync,
   });
 
   const { start: startCapture, stop: stopCapture, mute, unmute } = useAudioCapture({
@@ -253,6 +262,7 @@ export default function InterviewPage() {
         {candidateInfo && (
           <InterviewTimer
             totalSeconds={candidateInfo.time_limit_min * 60}
+            remainingSeconds={currentRemainingSeconds ?? candidateInfo.remaining_seconds}
             running={interviewState === "active"}
             onExpired={endInterview}
           />

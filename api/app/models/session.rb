@@ -30,6 +30,18 @@ class Session < ApplicationRecord
     "#{base}/interview/#{invite_token}"
   end
 
+  def remaining_seconds
+    return 0 if ended?
+
+    target_assessment = assessment || Assessment.unscoped.find_by(id: assessment_id)
+    return unless target_assessment&.time_limit_min
+
+    limit = target_assessment.time_limit_min * 60
+    return limit unless started_at
+
+    [(limit - (Time.current - started_at)).to_i, 0].max
+  end
+
   private
 
   def generate_invite_token

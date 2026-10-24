@@ -163,6 +163,8 @@ export interface CandidateInfo {
   session_id: number;
   role_title: string;
   time_limit_min: number;
+  remaining_seconds?: number;
+  started_at?: string | null;
   session_status: string;
 }
 
@@ -200,6 +202,9 @@ export interface WsControlMessage {
   speaker?: "candidate" | "ai";
   role?: "candidate" | "ai";
   text?: string;
+  turn_number?: number;
+  remaining_seconds?: number;
+  server_timestamp?: string;
   reason?: string;
   code?: string;
   message?: string;
