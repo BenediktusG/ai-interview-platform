@@ -161,19 +161,39 @@ export default function FitGapReportPage() {
             </CardContent>
           </Card>
 
-          <Separator />
+          {/* Executive Technical Summary */}
+          {report.overall_narrative && (
+            <>
+              <Separator />
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Executive Technical Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                    {report.overall_narrative}
+                  </p>
+                </CardContent>
+              </Card>
+            </>
+          )}
 
-          {/* Culture & competency */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Culture &amp; Competency Fit</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                {report.culture_narrative || report.overall_narrative}
-              </p>
-            </CardContent>
-          </Card>
+          {/* Culture & Behavioral Alignment */}
+          {report.culture_narrative && (
+            <>
+              <Separator />
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Culture &amp; Behavioral Alignment</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                    {report.culture_narrative}
+                  </p>
+                </CardContent>
+              </Card>
+            </>
+          )}
 
           {/* Discovered skills */}
           {portfolio && portfolio.skills.some((s) => s.is_discovered) && (
