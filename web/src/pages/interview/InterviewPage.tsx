@@ -21,13 +21,15 @@ import { useAudioPlayback } from "@/hooks/useAudioPlayback";
 import { useAudioWebSocket } from "@/hooks/useAudioWebSocket";
 import { sessionsApi } from "@/services/sessions";
 import HardwareCheck from "@/components/HardwareCheck";
-import { CheckCircle, Mic, MicOff } from "lucide-react";
+import ConsentModal from "@/components/interview/ConsentModal";
+import { CheckCircle, Mic, MicOff, Loader2 } from "lucide-react";
 import type { CandidateInfo, InterviewState, InterviewSpeaker, TranscriptTurn } from "@/types";
 
 export default function InterviewPage() {
   const { token } = useParams<{ token: string }>();
   const [candidateInfo, setCandidateInfo] = useState<CandidateInfo | null>(null);
   const [sessionId, setSessionId] = useState<number | null>(null);
+  const [hasConsented, setHasConsented] = useState<boolean | null>(null);
   const [interviewState, setInterviewState] = useState<InterviewState>("idle");
   const [speaker, setSpeaker] = useState<InterviewSpeaker>(null);
   const [transcript, setTranscript] = useState<Pick<TranscriptTurn, "speaker" | "text">[]>([]);
@@ -47,6 +49,7 @@ export default function InterviewPage() {
       .then((res) => {
         setCandidateInfo(res.data);
         setSessionId(res.data.session_id);
+        setHasConsented(Boolean(res.data.consented));
         if (typeof res.data.remaining_seconds === "number") {
           setCurrentRemainingSeconds(res.data.remaining_seconds);
         }
@@ -198,15 +201,37 @@ export default function InterviewPage() {
 
   // ── State A: Pre-start ──────────────────────────────────────────────────
   if (interviewState === "idle") {
+    if (!candidateInfo || hasConsented === null) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Memuat sesi asesmen / Loading assessment session...</p>
+        </div>
+      );
+    }
+
+    if (!hasConsented) {
+      return (
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <ConsentModal
+            token={token!}
+            roleTitle={candidateInfo.role_title}
+            onConsentSuccess={() => {
+              setHasConsented(true);
+              setCandidateInfo((prev) => (prev ? { ...prev, consented: true } : prev));
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-xl mx-auto px-4 py-8 space-y-6">
         <div className="text-center space-y-1">
-          <h1 className="text-xl font-semibold">{candidateInfo?.role_title ?? "AI Interview"}</h1>
-          {candidateInfo && (
-            <p className="text-sm text-muted-foreground">
-              {candidateInfo.time_limit_min} minutes
-            </p>
-          )}
+          <h1 className="text-xl font-semibold">{candidateInfo.role_title ?? "AI Interview"}</h1>
+          <p className="text-sm text-muted-foreground">
+            {candidateInfo.time_limit_min} minutes
+          </p>
         </div>
 
         {!hardwareCheckDone ? (
@@ -214,7 +239,7 @@ export default function InterviewPage() {
             <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-1.5 text-muted-foreground">
               <p>• This is a voice interview. Make sure you're in a quiet place.</p>
               <p>• The AI will ask follow-up questions — there are no scripts.</p>
-              <p>• The session will last up to {candidateInfo?.time_limit_min ?? "—"} minutes.</p>
+              <p>• The session will last up to {candidateInfo.time_limit_min} minutes.</p>
               <p>• Your mic will be active throughout. You can end anytime.</p>
             </div>
             <HardwareCheck onStart={() => { setHardwareCheckDone(true); startInterview(); }} />

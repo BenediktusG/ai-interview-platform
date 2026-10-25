@@ -3,8 +3,8 @@
 module Api
   module V1
     class SessionsController < ApiController
-      authorize_auth_token! :assessor, except: %i[candidate_info audio_complete]
-      skip_before_action :require_tenant!, only: %i[candidate_info audio_complete]
+      authorize_auth_token! :assessor, except: %i[candidate_info audio_complete consent]
+      skip_before_action :require_tenant!, only: %i[candidate_info audio_complete consent]
 
       before_action :set_session, only: %i[show end_session coverage transcript]
 
@@ -128,6 +128,27 @@ module Api
         json_response(ended: true, message: "Session ended")
       end
 
+      # POST /sessions/:token/consent — no JWT, invite token in URL
+      def consent
+        session = Session.unscoped.find_by(invite_token: params[:token])
+        return json_error("Invalid or expired invite token", :not_found) unless session
+
+        if session.ended?
+          return json_error("Session is already ended", :unprocessable_entity)
+        end
+
+        version = params[:terms_version].presence || "2026.1"
+        session.record_consent!(ip: request.remote_ip, version: version)
+
+        json_response(
+          consented:     true,
+          consented_at:  session.consented_at,
+          terms_version: session.terms_version
+        )
+      rescue ActiveRecord::RecordInvalid => e
+        json_error(e.message, :unprocessable_entity)
+      end
+
       # GET /sessions/:token/candidate  — no JWT, invite token in URL
       def candidate_info
         session = Session.unscoped.find_by(invite_token: params[:token])
@@ -151,7 +172,10 @@ module Api
           time_limit_min:    assessment.time_limit_min,
           remaining_seconds: session.remaining_seconds,
           started_at:        session.started_at,
-          session_status:    session.status
+          session_status:    session.status,
+          consented:         session.consented?,
+          consented_at:      session.consented_at,
+          terms_version:     session.terms_version
         )
       end
 
@@ -177,6 +201,8 @@ module Api
           started_at:       session.started_at,
           ended_at:         session.ended_at,
           duration_seconds: session.duration_seconds,
+          consented_at:     session.consented_at,
+          terms_version:    session.terms_version,
           created_at:       session.created_at
         }
       end

@@ -29,6 +29,12 @@ export const sessionsApi = {
   getCandidateInfo: (token: string) =>
     api.get<CandidateInfo>(`/sessions/${token}/candidate`),
 
+  submitConsent: (token: string, data?: { terms_version?: string }) =>
+    api.post<{ consented: boolean; consented_at: string; terms_version: string }>(
+      `/sessions/${token}/consent`,
+      data
+    ),
+
   audioComplete: (token: string) =>
     api.post<{ ended: boolean; message: string }>(`/sessions/${token}/audio_complete`),
 };

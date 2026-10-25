@@ -44,6 +44,9 @@ export interface Session {
   started_at?: string;
   ended_at?: string;
   duration_seconds?: number;
+  consented_at?: string | null;
+  consent_ip?: string | null;
+  terms_version?: string | null;
   created_at?: string;
 }
 
@@ -166,6 +169,9 @@ export interface CandidateInfo {
   remaining_seconds?: number;
   started_at?: string | null;
   session_status: string;
+  consented?: boolean;
+  consented_at?: string | null;
+  terms_version?: string | null;
 }
 
 export interface PaginationMeta {
