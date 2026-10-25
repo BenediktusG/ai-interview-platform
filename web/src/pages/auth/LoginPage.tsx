@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useSetAtom } from "jotai";
 import { authAtom, saveToken } from "@/stores/authAtom";
 import { authApi } from "@/services/auth";
@@ -82,6 +82,12 @@ export default function LoginPage() {
           </Button>
         </form>
 
+        <p className="text-center text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <Link to="/signup" className="text-primary hover:underline">
+            Create an account
+          </Link>
+        </p>
       </div>
     </div>
   );
