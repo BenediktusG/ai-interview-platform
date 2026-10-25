@@ -169,6 +169,7 @@ export interface CandidateInfo {
   remaining_seconds?: number;
   started_at?: string | null;
   session_status: string;
+  end_reason?: string | null;
   consented?: boolean;
   consented_at?: string | null;
   terms_version?: string | null;

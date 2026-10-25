@@ -6,7 +6,7 @@ module Api
       authorize_auth_token! :assessor, except: %i[candidate_info audio_complete consent]
       skip_before_action :require_tenant!, only: %i[candidate_info audio_complete consent]
 
-      before_action :set_session, only: %i[show end_session coverage transcript]
+      before_action :set_session, only: %i[show end_session reopen coverage transcript]
 
       # GET /api/v1/assessments/:assessment_id/sessions
       def index
@@ -75,6 +75,37 @@ module Api
         else
           json_error("Failed to end session", :unprocessable_entity)
         end
+      end
+
+      # POST /api/v1/sessions/:id/reopen
+      def reopen
+        unless @session.ended?
+          return json_error("Only ended sessions can be reopened", :unprocessable_entity)
+        end
+
+        unless @session.end_reason == "error" || params[:force] == true
+          return json_error("Only sessions ended due to connection or system errors can be reopened", :unprocessable_entity)
+        end
+
+        ActiveRecord::Base.transaction do
+          @session.portfolio&.destroy
+
+          @session.update!(
+            status:                  "pending",
+            end_reason:              nil,
+            ended_at:                nil,
+            duration_seconds:        nil,
+            started_at:              nil,
+            gemini_resumption_token: nil
+          )
+        end
+
+        json_response(
+          session: session_json(@session.reload),
+          message: "Session successfully reopened. Candidate may now resume the interview."
+        )
+      rescue ActiveRecord::RecordInvalid => e
+        json_error(e.message, :unprocessable_entity)
       end
 
       # GET /api/v1/sessions/:id/coverage
@@ -173,6 +204,7 @@ module Api
           remaining_seconds: session.remaining_seconds,
           started_at:        session.started_at,
           session_status:    session.status,
+          end_reason:        session.end_reason,
           consented:         session.consented?,
           consented_at:      session.consented_at,
           terms_version:     session.terms_version

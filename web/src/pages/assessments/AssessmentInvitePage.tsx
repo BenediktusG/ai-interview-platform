@@ -14,8 +14,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { assessmentsApi } from "@/services/assessments";
+import { sessionsApi } from "@/services/sessions";
 import { LEVEL_LABELS } from "@/utils/constants";
-import { ArrowLeft, Copy, Check, Eye, Pencil, Clock, Plus, UserRound } from "lucide-react";
+import { ArrowLeft, Copy, Check, Eye, Pencil, Clock, Plus, UserRound, RotateCcw, Loader2 } from "lucide-react";
 import type { Assessment, Session } from "@/types";
 
 function SessionRow({
@@ -24,12 +25,16 @@ function SessionRow({
   assessmentId,
   onCopy,
   copiedId,
+  onReopen,
+  reopeningId,
 }: {
   session: Session;
   index: number;
   assessmentId: string;
   onCopy: (id: number) => void;
   copiedId: number | null;
+  onReopen: (id: number) => void;
+  reopeningId: number | null;
 }) {
   const navigate = useNavigate();
   const isLive = session.status === "active";
@@ -114,6 +119,21 @@ function SessionRow({
               Results
             </Button>
           )}
+          {isEnded && session.end_reason === "error" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs text-amber-700 border-amber-300 hover:bg-amber-50"
+              onClick={() => onReopen(session.id)}
+              disabled={reopeningId === session.id}
+            >
+              {reopeningId === session.id ? (
+                <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Re-opening...</>
+              ) : (
+                <><RotateCcw className="h-3 w-3 mr-1" /> Re-open</>
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -132,11 +152,24 @@ export default function AssessmentInvitePage() {
   const [newSessionCopied, setNewSessionCopied] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [candidateNameInput, setCandidateNameInput] = useState("");
+  const [reopeningId, setReopeningId] = useState<number | null>(null);
 
   const loadSessions = useCallback(async () => {
     const res = await assessmentsApi.getSessions(Number(id));
     setSessions(res.data.sessions);
   }, [id]);
+
+  const handleReopen = async (sessionId: number) => {
+    setReopeningId(sessionId);
+    try {
+      await sessionsApi.reopen(sessionId);
+      await loadSessions();
+    } catch (err) {
+      console.error("Failed to re-open session:", err);
+    } finally {
+      setReopeningId(null);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -313,6 +346,8 @@ export default function AssessmentInvitePage() {
                     if (s) copyLink(s, sid);
                   }}
                   copiedId={copiedId}
+                  onReopen={handleReopen}
+                  reopeningId={reopeningId}
                 />
               ))}
             </CardContent>

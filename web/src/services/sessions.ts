@@ -12,6 +12,9 @@ export const sessionsApi = {
       session: { reason },
     }),
 
+  reopen: (id: number, force = false) =>
+    api.post<{ session: Session; message: string }>(`/sessions/${id}/reopen`, { force }),
+
   getCoverage: (id: number) =>
     api.get<CoverageMap>(`/sessions/${id}/coverage`),
 
