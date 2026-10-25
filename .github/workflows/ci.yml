@@ -97,4 +97,4 @@ jobs:
 
       - name: Run RSpec suite
         run: |
-          bundle exec rspec
+          bundle exec rspec --format documentation

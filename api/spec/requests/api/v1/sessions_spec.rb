@@ -15,10 +15,18 @@ RSpec.describe 'Sessions API', type: :request do
     }
   end
 
+  let!(:assessment) do
+    Assessment.create!(
+      name: 'General Assessment',
+      tenant_id: 'tenant-123',
+      time_limit_min: 45
+    )
+  end
+
   describe 'POST /api/v1/sessions/:token/consent (SPEC-P0-01)' do
     it 'records candidate consent with IP and terms_version without requiring JWT' do
       session = Session.create!(
-        assessment_id: 1,
+        assessment_id: assessment.id,
         tenant_id: 'tenant-123',
         status: 'pending'
       )
@@ -39,7 +47,7 @@ RSpec.describe 'Sessions API', type: :request do
 
     it 'returns 422 if session is already ended' do
       session = Session.create!(
-        assessment_id: 1,
+        assessment_id: assessment.id,
         tenant_id: 'tenant-123',
         status: 'ended',
         end_reason: 'manual_candidate'
@@ -58,7 +66,7 @@ RSpec.describe 'Sessions API', type: :request do
   describe 'POST /api/v1/sessions/:id/reopen (SPEC-P2-01)' do
     it 'reopens an error session back to pending and preserves turns' do
       session = Session.create!(
-        assessment_id: 1,
+        assessment_id: assessment.id,
         tenant_id: 'tenant-123',
         status: 'ended',
         end_reason: 'error',
@@ -83,7 +91,7 @@ RSpec.describe 'Sessions API', type: :request do
 
     it 'rejects reopening sessions that ended normally unless force=true' do
       session = Session.create!(
-        assessment_id: 1,
+        assessment_id: assessment.id,
         tenant_id: 'tenant-123',
         status: 'ended',
         end_reason: 'all_covered'
