@@ -76,6 +76,15 @@ Rails.application.routes.draw do
           get  :export
         end
       end
+
+      # Organization members management
+      namespace :organization do
+        resources :members, only: %i[index destroy] do
+          collection do
+            post :invite
+          end
+        end
+      end
     end
   end
 end
