@@ -28,7 +28,7 @@ api.interceptors.response.use(
   },
   (error) => {
     const status = error.response?.status;
-    if (status === 401 || status === 403) {
+    if (status === 401) {
       clearToken();
       const pathname = typeof window !== "undefined" ? window.location.pathname : "";
       const isPublicOrAuthRoute =

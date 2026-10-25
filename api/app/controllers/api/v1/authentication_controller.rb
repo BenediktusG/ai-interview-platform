@@ -61,47 +61,56 @@ module Api
         end
 
         # Generate unique URL-safe scheme / slug
-        base_slug = org_name.parameterize.presence || 'org'
+        base_slug = org_name.to_s.downcase.gsub(/[^a-z0-9]+/, '-').gsub(/\A-+|-+\z/, '').presence || 'org'
         scheme = base_slug
         counter = 1
-        while Organization.exists?(scheme: scheme)
+        while ::Organization.exists?(scheme: scheme)
           scheme = "#{base_slug}-#{counter}"
           counter += 1
         end
 
+        org = nil
+        user = nil
+        token = nil
+
         ActiveRecord::Base.transaction do
-          org = Organization.create!(
+          org = ::Organization.create!(
             name:        org_name,
             scheme:      scheme,
             identifier:  scheme,
-            host:        'localhost'
+            host:        'localhost',
+            alias_hosts: [],
+            config:      {}
           )
 
-          user = User.create!(
+          user = ::User.create!(
             email:    email,
             password: password,
             role:     'admin'
           )
 
-          OrganizationMembership.create!(
+          ::OrganizationMembership.create!(
             user:         user,
             organization: org,
             role:         'admin'
           )
 
           token = JsonWebToken.encode({ user_id: user.id, role: 'admin', scheme: org.scheme })
-
-          return json_response({
-            token: token,
-            user: { id: user.id, email: user.email, role: 'admin' },
-            active_organization: { id: org.id, name: org.name, scheme: org.scheme },
-            organizations: [
-              { id: org.id, name: org.name, scheme: org.scheme, role: 'admin' }
-            ]
-          }, :created)
         end
+
+        json_response({
+          token: token,
+          user: { id: user.id, email: user.email, role: 'admin' },
+          active_organization: { id: org.id, name: org.name, scheme: org.scheme },
+          organizations: [
+            { id: org.id, name: org.name, scheme: org.scheme, role: 'admin' }
+          ]
+        }, :created)
       rescue ActiveRecord::RecordInvalid => e
-        json_error(e.message, :unprocessable_entity)
+        json_error(e.record.errors.full_messages.join(', '), :unprocessable_entity)
+      rescue StandardError => e
+        Rails.logger.error("[SignupOrganization Error] #{e.class}: #{e.message}\n#{e.backtrace&.first(15)&.join("\n")}")
+        json_error('Gagal mendaftarkan organisasi. Silakan periksa kembali data Anda.', :unprocessable_entity)
       end
 
       # POST /api/v1/auth/signup/user

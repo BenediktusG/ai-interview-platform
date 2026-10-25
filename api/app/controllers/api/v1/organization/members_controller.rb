@@ -26,13 +26,13 @@ module Api
 
           return json_error('Valid email is required', :unprocessable_entity) if email.blank? || !email.match?(URI::MailTo::EMAIL_REGEXP)
 
-          unless OrganizationMembership::ROLES.include?(role)
+          unless ::OrganizationMembership::ROLES.include?(role)
             return json_error("Invalid role. Must be 'admin' or 'assessor'", :unprocessable_entity)
           end
 
           # Find or provision placeholder user account for invited colleague
-          user = User.find_by(email: email)
-          user ||= User.create!(
+          user = ::User.find_by(email: email)
+          user ||= ::User.create!(
             email:    email,
             password: SecureRandom.hex(16),
             role:     'user'
@@ -77,12 +77,14 @@ module Api
         end
 
         def membership_json(m)
+          timestamp = m.created_at || m.updated_at || Time.current
           {
             id:         m.id,
             user_id:    m.user_id,
             email:      m.user.email,
             role:       m.role,
-            joined_at:  m.created_at
+            joined_at:  timestamp.iso8601,
+            created_at: timestamp.iso8601
           }
         end
       end

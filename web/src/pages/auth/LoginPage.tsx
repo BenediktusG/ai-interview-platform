@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useSetAtom } from "jotai";
-import { authAtom, saveToken } from "@/stores/authAtom";
+import { authAtom, saveAuthSession } from "@/stores/authAtom";
+import { tenantAtom, saveActiveOrg } from "@/stores/tenantAtom";
 import { authApi } from "@/services/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const isExpired = searchParams.get("expired") === "true";
   const setAuth = useSetAtom(authAtom);
+  const setTenant = useSetAtom(tenantAtom);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,9 +26,11 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await authApi.login({ email, password });
-      const token = res.data.token;
-      saveToken(token);
-      setAuth({ token });
+      const { token, user, active_organization, organizations } = res.data;
+      saveAuthSession({ token, user, organizations });
+      saveActiveOrg(active_organization);
+      setAuth({ token, user, organizations });
+      setTenant(active_organization || { id: null, name: null, scheme: null });
       navigate("/assessments");
     } catch {
       setError("Invalid email or password.");
