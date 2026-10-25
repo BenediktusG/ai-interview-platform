@@ -8,7 +8,7 @@ class Rack::Attack
 
   # Throttle auth attempts (login & signup): 5 per minute per IP.
   throttle('auth/endpoints', limit: 5, period: 1.minute) do |req|
-    req.ip if req.path.match?(%r{\A/api/v1/(auth/login|auth/signup|signup)\z}) && req.post?
+    req.ip if req.path.match?(%r{\A/api/v1/(auth/login|auth/signup|signup)(/.*)?\z}) && req.post?
   end
 
   # Throttle candidate-facing endpoints: 30 per minute per IP.
