@@ -143,6 +143,7 @@ ActiveRecord::Schema[7.0].define(version: 2026_05_05_000002) do
     t.text "gemini_resumption_token"
     t.datetime "created_at", default: -> { "now()" }, null: false
     t.string "candidate_name", limit: 255
+    t.string "candidate_email", limit: 255
     t.datetime "consented_at"
     t.string "consent_ip", limit: 45
     t.string "terms_version", limit: 50

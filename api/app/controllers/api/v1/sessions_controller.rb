@@ -23,9 +23,10 @@ module Api
         assessment = Assessment.find(params[:assessment_id])
 
         session = assessment.sessions.new(
-          candidate_id:   params.dig(:session, :candidate_id),
-          candidate_name: params.dig(:session, :candidate_name).presence,
-          tenant_id:      current_tenant_id
+          candidate_id:    params.dig(:session, :candidate_id),
+          candidate_name:  params.dig(:session, :candidate_name).presence,
+          candidate_email: params.dig(:session, :candidate_email).presence,
+          tenant_id:       current_tenant_id
         )
 
         if session.save
@@ -41,6 +42,49 @@ module Api
         end
       rescue ActiveRecord::RecordNotFound
         json_error("Assessment not found", :not_found)
+      end
+
+      # POST /api/v1/assessments/:assessment_id/sessions/batch
+      def batch
+        assessment = Assessment.find(params[:assessment_id])
+        candidates = params[:candidates] || params[:sessions] || []
+
+        if candidates.blank? || !candidates.is_a?(Array)
+          return json_error("Candidates list must be a non-empty array", :unprocessable_entity)
+        end
+
+        if candidates.length > 500
+          return json_error("Batch size cannot exceed 500 candidates per upload", :unprocessable_entity)
+        end
+
+        created_sessions = []
+
+        ActiveRecord::Base.transaction do
+          candidates.each do |c|
+            name  = c[:name].presence || c[:candidate_name].presence || "Candidate"
+            email = c[:email].presence || c[:candidate_email].presence
+
+            session = assessment.sessions.create!(
+              tenant_id:       current_tenant_id,
+              candidate_name:  name.to_s.strip,
+              candidate_email: email&.to_s&.strip,
+              candidate_id:    c[:candidate_id]
+            )
+            created_sessions << session
+          end
+        end
+
+        json_response(
+          {
+            count:    created_sessions.length,
+            sessions: created_sessions.map(&method(:session_json))
+          },
+          :created
+        )
+      rescue ActiveRecord::RecordNotFound
+        json_error("Assessment not found", :not_found)
+      rescue ActiveRecord::RecordInvalid => e
+        json_error(e.message, :unprocessable_entity)
       end
 
       # GET /api/v1/sessions/:id
@@ -226,6 +270,7 @@ module Api
           tenant_id:        session.tenant_id,
           candidate_id:     session.candidate_id,
           candidate_name:   session.candidate_name,
+          candidate_email:  session.candidate_email,
           invite_token:     session.invite_token,
           invite_url:       session.invite_url,
           status:           session.status,
