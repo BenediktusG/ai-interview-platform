@@ -6,9 +6,12 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       # Auth
-      post 'auth/login',  to: 'authentication#authenticate'
-      post 'auth/signup', to: 'authentication#signup'
-      post 'signup',      to: 'authentication#signup'
+      post 'auth/login',               to: 'authentication#authenticate'
+      post 'auth/signup',              to: 'authentication#signup'
+      post 'auth/signup/organization', to: 'authentication#signup_organization'
+      post 'auth/signup/user',         to: 'authentication#signup_user'
+      post 'auth/switch_tenant',       to: 'authentication#switch_tenant'
+      post 'signup',                   to: 'authentication#signup'
       # Health check
       get  'health', to: proc { [200, {}, [{ status: 'ok' }.to_json]] }
 
