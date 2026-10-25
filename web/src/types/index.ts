@@ -132,6 +132,7 @@ export interface VacancySkill {
 export type SkillComparisonResult = "match" | "gap" | "exceed" | "not_assessed";
 
 export interface SkillComparison {
+  skill_id?: number;
   skill_label: string;
   required_level: number;
   candidate_level?: number;
